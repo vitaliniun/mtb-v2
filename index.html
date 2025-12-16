@@ -1,0 +1,333 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<meta name="theme-color" content="#0b0f14"/>
+<title>Music Tag Builder V2</title>
+<link rel="manifest" href="manifest.json">
+<style>
+  :root{
+    --bg:#0b0f14; --panel:#11161d; --border:#233046; --ink:#e6edf3; --ink-dim:#8b949e;
+    --accent:#35c48f; --accent-dim:rgba(53, 196, 143, 0.15);
+    --danger:#f85149; --danger-dim:rgba(248, 81, 73, 0.15);
+    --radius:12px;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Helvetica,Arial,sans-serif;background:var(--bg);color:var(--ink);padding-bottom:80px}
+  .wrap{max-width:1100px;margin:0 auto;padding:20px}
+  
+  /* Header */
+  header{display:flex;justify-content:space-between;align-items:center;margin-bottom:24px;border-bottom:1px solid var(--border);padding-bottom:16px}
+  h1{margin:0;font-size:22px;background:linear-gradient(90deg, #fff, #8b949e);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+
+  /* Layout Grid */
+  .grid{display:grid;grid-template-columns:1fr 340px;gap:24px}
+  @media(max-width:800px){.grid{grid-template-columns:1fr}}
+
+  /* Components */
+  .card{background:var(--panel);border:1px solid var(--border);border-radius:var(--radius);padding:16px;margin-bottom:16px}
+  .row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+  .btn{background:var(--panel);border:1px solid var(--border);color:var(--ink);padding:10px 16px;border-radius:8px;cursor:pointer;font-weight:600;font-size:14px;transition:0.2s}
+  .btn:hover{background:#1c2128;border-color:#8b949e}
+  .btn.primary{background:var(--accent-dim);border-color:var(--accent);color:var(--accent)}
+  .btn.primary:hover{background:var(--accent);color:#000}
+  .btn.danger{background:var(--danger-dim);border-color:var(--danger);color:var(--danger)}
+  
+  input, select, textarea{width:100%;background:#0d1117;border:1px solid var(--border);color:var(--ink);padding:10px;border-radius:8px;font-size:14px;outline:none}
+  input:focus, select:focus, textarea:focus{border-color:var(--accent)}
+
+  /* Chips */
+  .chips{display:flex;flex-wrap:wrap;gap:8px;min-height:40px}
+  .chip{background:#161b22;border:1px solid var(--border);padding:6px 12px;border-radius:20px;font-size:13px;display:flex;align-items:center;gap:8px;user-select:none;cursor:default}
+  .chip:hover{border-color:var(--ink-dim)}
+  .chip .x{color:var(--danger);cursor:pointer;font-weight:bold;padding:0 4px}
+
+  /* Output Area */
+  .output{background:#0d1117;border:1px dashed var(--border);padding:14px;border-radius:8px;font-family:monospace;color:var(--ink-dim);font-size:13px;word-break:break-all;margin-top:12px}
+
+  /* Titles */
+  h2, h3{margin:0 0 12px 0;font-size:14px;text-transform:uppercase;letter-spacing:0.5px;color:var(--ink-dim)}
+
+  /* Modal */
+  dialog{background:var(--panel);color:var(--ink);border:1px solid var(--border);border-radius:16px;width:90%;max-width:600px;padding:0;box-shadow:0 20px 50px rgba(0,0,0,0.7)}
+  dialog::backdrop{background:rgba(0,0,0,0.8)}
+  .modal-head{padding:16px;border-bottom:1px solid var(--border);display:flex;justify-content:space-between;align-items:center}
+  .modal-body{padding:16px;max-height:60vh;overflow-y:auto}
+  
+  .list-item{background:#0d1117;border:1px solid var(--border);padding:12px;border-radius:8px;margin-bottom:8px;display:flex;justify-content:space-between;align-items:flex-start}
+  .list-info{flex:1}
+  .list-title{font-weight:bold;color:var(--accent);font-size:15px}
+  .list-fam{font-size:11px;background:#21262d;padding:2px 6px;border-radius:4px;display:inline-block;margin-top:4px}
+  .list-actions{display:flex;gap:6px;margin-left:10px}
+  .icon-btn{padding:6px;font-size:16px;background:none;border:none;cursor:pointer;opacity:0.6}
+  .icon-btn:hover{opacity:1;transform:scale(1.1)}
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <header>
+    <div>
+      <h1>Music Tag Builder <span style="font-size:12px;color:var(--accent);vertical-align:top">V2</span></h1>
+    </div>
+    <button id="installBtn" class="btn primary" style="display:none">📲 Instalar App</button>
+  </header>
+
+  <div class="grid">
+    <div>
+      <div class="card">
+        <div class="row" style="margin-bottom:12px">
+          <input id="tagInput" type="search" placeholder="Adicionar tag (digite e Enter)..." style="flex:1" autocomplete="off">
+          <button id="addBtn" class="btn primary">+</button>
+        </div>
+        <div id="chipContainer" class="chips"></div>
+        <div class="output" id="finalText"></div>
+        <div class="row" style="margin-top:12px;justify-content:flex-end">
+          <button id="undoBtn" class="btn">Desfazer</button>
+          <button id="clearBtn" class="btn danger">Limpar</button>
+          <button id="copyBtn" class="btn primary">Copiar</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3>Aplicar Combo</h3>
+        <div class="row">
+          <select id="famSelect"><option value="">Família...</option></select>
+          <select id="comboSelect" disabled><option value="">Combo...</option></select>
+          <button id="applyComboBtn" class="btn primary" disabled>Aplicar</button>
+        </div>
+      </div>
+    </div>
+
+    <div>
+      <div class="card">
+        <h3>Salvar Atual</h3>
+        <input id="saveName" placeholder="Nome do Combo" style="margin-bottom:8px">
+        <input id="saveFam" placeholder="Família (ex: Bandas)" style="margin-bottom:8px">
+        <button id="saveBtn" class="btn primary" style="width:100%">Salvar na Biblioteca</button>
+      </div>
+
+      <div class="card">
+        <h3>Biblioteca</h3>
+        <button id="manageBtn" class="btn" style="width:100%;margin-bottom:10px">⚙️ Editar / Excluir Combos</button>
+        <div class="row" style="justify-content:space-between">
+          <button id="exportBtn" class="btn" style="font-size:12px">⬇ Backup</button>
+          <label class="btn" style="font-size:12px">
+            ⬆ Importar
+            <input type="file" id="importInput" hidden accept=".json">
+          </label>
+        </div>
+      </div>
+
+      <div class="card" style="opacity:0.8">
+        <h3>Colagem Rápida</h3>
+        <textarea id="pasteArea" rows="3" placeholder="Cole uma lista de tags aqui..."></textarea>
+        <button id="pasteBtn" class="btn" style="width:100%;margin-top:8px">Transformar em Combo</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<dialog id="managerModal">
+  <div class="modal-head">
+    <span>Gerenciar Biblioteca</span>
+    <button id="closeManager" class="icon-btn">✕</button>
+  </div>
+  <div style="padding:10px;background:#0d1117">
+    <input id="searchManager" placeholder="Filtrar por nome...">
+  </div>
+  <div class="modal-body" id="managerList"></div>
+</dialog>
+
+<script>
+/* --- LÓGICA V2 --- */
+const DB_KEY = 'mtb_v2_db';
+let state = { tags: [], history: [] };
+
+// Utilitários
+const $ = id => document.getElementById(id);
+const sanitize = s => s.toString().trim().toLowerCase();
+const unique = arr => [...new Set(arr)];
+
+// Database
+const DB = {
+  get: () => { try{ return JSON.parse(localStorage.getItem(DB_KEY)) || [] }catch{ return [] } },
+  set: (data) => localStorage.setItem(DB_KEY, JSON.stringify(data)),
+  add: (item) => {
+    let list = DB.get();
+    list = list.filter(i => i.name !== item.name); // Substitui se existir
+    list.push(item);
+    list.sort((a,b) => a.name.localeCompare(b.name));
+    DB.set(list);
+  },
+  del: (name) => {
+    const list = DB.get().filter(i => i.name !== name);
+    DB.set(list);
+  }
+};
+
+// Renderização
+function render(){
+  const box = $('chipContainer');
+  box.innerHTML = '';
+  state.tags.forEach(t => {
+    const el = document.createElement('div');
+    el.className = 'chip';
+    el.innerHTML = `<span style="font-family:monospace">${t}</span><span class="x">×</span>`;
+    el.querySelector('.x').onclick = () => { pushHist(); state.tags = state.tags.filter(x => x !== t); render(); };
+    box.appendChild(el);
+  });
+  $('finalText').textContent = state.tags.join(', ');
+}
+
+function pushHist(){
+  state.history.push([...state.tags]);
+  if(state.history.length > 20) state.history.shift();
+}
+
+function addTag(txt){
+  if(!txt.trim()) return;
+  pushHist();
+  const parts = txt.split(/[,;\n]/).map(sanitize).filter(Boolean);
+  state.tags = unique([...state.tags, ...parts]);
+  render();
+  $('tagInput').value = '';
+}
+
+// Menus
+function updateMenus(){
+  const all = DB.get();
+  const fams = unique(all.map(i => i.name.split('—')[0].trim())).sort();
+  
+  const sel = $('famSelect');
+  const oldVal = sel.value;
+  sel.innerHTML = '<option value="">Família...</option>';
+  fams.forEach(f => sel.innerHTML += `<option value="${f}">${f}</option>`);
+  sel.value = oldVal;
+  
+  updateCombos();
+}
+
+function updateCombos(){
+  const fam = $('famSelect').value;
+  const sel = $('comboSelect');
+  sel.innerHTML = '<option value="">Combo...</option>';
+  sel.disabled = !fam;
+  $('applyComboBtn').disabled = true;
+  
+  if(fam){
+    const items = DB.get().filter(i => i.name.startsWith(fam));
+    items.forEach(i => {
+      const cleanName = i.name.split('—')[1]?.trim() || i.name;
+      sel.innerHTML += `<option value="${i.name}">${cleanName}</option>`;
+    });
+  }
+}
+
+// Gerenciador (A NOVIDADE)
+function renderManager(filter = ''){
+  const list = $('managerList');
+  list.innerHTML = '';
+  const data = DB.get().filter(i => i.name.toLowerCase().includes(filter.toLowerCase()));
+  
+  if(!data.length) list.innerHTML = '<div style="text-align:center;padding:20px;opacity:0.5">Nada encontrado.</div>';
+
+  data.forEach(item => {
+    const [fam, ...rest] = item.name.split('—');
+    const name = rest.join('—').trim() || item.name;
+    
+    const div = document.createElement('div');
+    div.className = 'list-item';
+    div.innerHTML = `
+      <div class="list-info">
+        <div class="list-title">${name}</div>
+        <div class="list-fam">${fam.trim()}</div>
+        <div style="font-size:11px;opacity:0.6;margin-top:4px">${item.tags.slice(0,5).join(', ')}...</div>
+      </div>
+      <div class="list-actions">
+        <button class="icon-btn del" title="Excluir">🗑️</button>
+      </div>
+    `;
+    div.querySelector('.del').onclick = () => {
+      if(confirm('Excluir este combo?')) { DB.del(item.name); renderManager(filter); updateMenus(); }
+    };
+    list.appendChild(div);
+  });
+}
+
+// Eventos
+document.addEventListener('DOMContentLoaded', () => {
+  updateMenus();
+  
+  // Tags
+  $('addBtn').onclick = () => addTag($('tagInput').value);
+  $('tagInput').onkeydown = e => e.key === 'Enter' && $('addBtn').click();
+  $('clearBtn').onclick = () => { pushHist(); state.tags = []; render(); };
+  $('undoBtn').onclick = () => { if(state.history.length){ state.tags = state.history.pop(); render(); } };
+  $('copyBtn').onclick = () => { navigator.clipboard.writeText($('finalText').textContent); alert('Copiado!'); };
+
+  // Combo Apply
+  $('famSelect').onchange = updateCombos;
+  $('comboSelect').onchange = () => $('applyComboBtn').disabled = !$('comboSelect').value;
+  $('applyComboBtn').onclick = () => {
+    const item = DB.get().find(i => i.name === $('comboSelect').value);
+    if(item) { pushHist(); state.tags = unique([...state.tags, ...item.tags]); render(); }
+  };
+
+  // Salvar
+  $('saveBtn').onclick = () => {
+    const n = $('saveName').value.trim();
+    const f = $('saveFam').value.trim();
+    if(!n || !f || !state.tags.length) return alert('Preencha Nome, Família e tenha tags.');
+    DB.add({ name: `${f} — ${n}`, tags: state.tags });
+    updateMenus();
+    $('saveName').value = '';
+    alert('Salvo!');
+  };
+  
+  // Colar Rápido
+  $('pasteBtn').onclick = () => {
+    const txt = $('pasteArea').value;
+    if(txt) { addTag(txt); $('pasteArea').value = ''; }
+  };
+
+  // Import/Export
+  $('exportBtn').onclick = () => {
+    const blob = new Blob([JSON.stringify(DB.get(), null, 2)], {type:'application/json'});
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'backup_v2.json';
+    a.click();
+  };
+  $('importInput').onchange = (e) => {
+    const fr = new FileReader();
+    fr.onload = (res) => {
+      try {
+        const json = JSON.parse(res.target.result);
+        const data = Array.isArray(json) ? json : (json.combos || []);
+        data.forEach(d => DB.add(d));
+        updateMenus();
+        alert('Importado com sucesso!');
+      } catch(e) { alert('Erro no arquivo JSON'); }
+    };
+    if(e.target.files[0]) fr.readAsText(e.target.files[0]);
+  };
+
+  // Manager
+  $('manageBtn').onclick = () => { renderManager(); $('managerModal').showModal(); };
+  $('closeManager').onclick = () => $('managerModal').close();
+  $('searchManager').oninput = (e) => renderManager(e.target.value);
+
+  // PWA
+  if('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js');
+  window.addEventListener('beforeinstallprompt', (e) => {
+    e.preventDefault();
+    const btn = $('installBtn');
+    btn.style.display = 'block';
+    btn.onclick = () => { e.prompt(); };
+  });
+});
+</script>
+</body>
+</html>
